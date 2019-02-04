@@ -17,7 +17,7 @@
     <div id="contentUsername" class="modal-background">
         <form class="modal" id="formUsername" method="post">
             <h2>Choisis un username</h2>
-            <input autocomplete="off" id="inputUsername" name="username"  type="text">
+            <input autofocus autocomplete="off" id="inputUsername" name="username"  type="text">
             <div class="loader hidden" id="loaderUsername"></div>
         </form>
     </div>
@@ -228,8 +228,8 @@
                 </div>
             </div>
             <div class="write">
-                <input type="text" />
-                <a href="javascript:;" class="write-link send"></a>
+                <input id="inputMessage" type="text" />
+                <a href="javascript:;" class="write-link send" onclick="sendMessage()"></a>
             </div>
         </div>
     </div>
@@ -245,6 +245,7 @@ const socket = io();
 let formUsername = document.body.querySelector('#formUsername'),
     inputUsername = formUsername.querySelector('#inputUsername'),
     loaderUsername = formUsername.querySelector('#loaderUsername'),
+    inputMessage = document.body.querySelector('#inputMessage'),
     username,
     allUsers
 
@@ -257,12 +258,26 @@ formUsername.addEventListener('submit', (event) => {
     loaderUsername.classList.remove('hidden')
 })
 
+//Envoie d un message
+inputMessage.addEventListener("keydown", (event) => {
+    if (event.keyCode == 13) {
+        sendMessage()
+    }
+})
+function sendMessage() {
+    let text = inputMessage.value.trim()
+    if (text != "") {
+        socket.emit("sendMessage", text)
+        inputMessage.value = ""
+    }
+}
+
 // Réponses concernant l'assignation de l'username
 socket.on('acceptUsername', (_username, _allUsers) => {
     username = _username
     allUsers = _allUsers
-    console.log(allUsers)
     closeModal()
+    updateUsers(allUsers)
 })
 socket.on('rejectUsername', (_username) => {
     inputUsername.value = ''
@@ -270,7 +285,22 @@ socket.on('rejectUsername', (_username) => {
     inputUsername.classList.remove('hidden')
     loaderUsername.classList.add('hidden')
 })
-  
+  //Mise à jour des utilisateurs
+socket.on("newUser", (newUsername, _allUsers) => {
+    allUsers = _allUsers
+    updateUsers(allUsers)
+    messageNewUser(newUsername)
+})
+
+socket.on("leftUser", (_allUsers) => {
+    allUsers = _allUsers
+    updateUsers(allUsers)
+
+})
+
+//Affichage d un message
+socket.on("confirmMessage", (text) => showMyMessage(text))
+socket.on("newMessage", (text) => showNewMessage(text))
 </script>
 
 </body>

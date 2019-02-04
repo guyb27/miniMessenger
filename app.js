@@ -63,7 +63,9 @@ io.on('connection', function (socket) {
             } else {
                 socket.join('users', () => {
                     usernames[socket.id] = usernameWanted
-                    socket.emit('acceptUsername', usernameWanted, getUsername())
+                    let justUsernames = getUsernames()
+                    socket.emit('acceptUsername', usernameWanted, justUsernames)
+                    socket.to("users").emit("newUser", usernameWanted, justUsernames)
                 })
             }
             
@@ -71,12 +73,20 @@ io.on('connection', function (socket) {
 
     })
 
+    //Reception d un message
+    socket.on("sendMessage", (text) => {
+        text.trim()
+        if (text != "") {
+
+            socket.to("users").emit("newMessage", text)
+            socket.emit("confirmMessage", text)
+        }
+    })
     // Déconnexion de l'utilisateur
     socket.on('disconnect', () => {
-        console.log('disconnected' + socket.id)
         if (usernames[socket.id]) {
             delete usernames[socket.id]
-            console.log('username deleted')
+            socket.to("users").emit("leftUser", getUsernames())
         }
     })
 
@@ -86,7 +96,7 @@ io.on('connection', function (socket) {
 server.listen(port, () => console.log('Server started on port ' + port))
 
 //Renvoie un array contenant uniquement les usernames sans index
-function getUsername () {
+function getUsernames () {
     let users = [];
     for (let socketid in usernames) {
         users.push(usernames[socketid])

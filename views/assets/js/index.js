@@ -46,7 +46,9 @@ function checkLinkUsersModal() {
 
 /* Modal */
 
-var modalContainer = document.body.querySelector('#modal-container')
+var modalContainer = document.body.querySelector('#modal-container'),
+listUsers = modalContainer.querySelector("#contentUsers ul")
+
 
 // Ouverture du modal sur la demande de l'username
 function openUsernameModal() {
@@ -68,4 +70,38 @@ function openUsersModal() {
 function closeModal() {
   modalContainer.classList.add('out')
   document.body.classList.remove('modal-active')
+}
+function updateUsers (users) {
+
+  console.log(listUsers)
+  listUsers.innerHTML = "";
+  for (let i in users) {
+    listUsers.innerHTML += "<li>" + users[i] + "</li>"
+  }
+  let text = "Discussion générale (" + users.length + ")"
+  friends.all[0].querySelector(".name").innerHTML = text
+  if (chat.person == "person0" || chat.person == null) {
+    document.body.querySelector("#infoPersonTop").innerHTML = text
+  }
+}
+
+//Messages
+
+var globalChat = chat.container.querySelector(".chat[data-chat=person0]");
+
+//Message d un nouvel utilisateur
+function messageNewUser(newUsername) {
+let message = '<div class="conversation-start"><span> ' + newUsername + ' est la ! </span></div>'
+globalChat.insertAdjacentHTML("beforeend", message)
+}
+
+//Affichage du message de l utilisateur courant
+function showMyMessage(text) {
+  let message = '<div class="bubble me">' + text + '</div>'
+  globalChat.insertAdjacentHTML("beforeend", message)
+}
+//Affichage d'un message extérieur
+function showNewMessage(text) {
+  let message = '<div class="bubble you">' + text + '</div>'
+  globalChat.insertAdjacentHTML("beforeend", message)
 }
