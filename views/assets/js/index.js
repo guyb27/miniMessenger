@@ -13,11 +13,7 @@ chat = {
   name: document.querySelector('.container .right .top .name') };
 
 
-friends.all.forEach(function (f) {
-  f.addEventListener('mousedown', function () {
-    f.classList.contains('active') || setAciveChat(f);
-  });
-});
+updateFriends()
 
 checkLinkUsersModal()
 
@@ -96,12 +92,83 @@ globalChat.insertAdjacentHTML("beforeend", message)
 }
 
 //Affichage du message de l utilisateur courant
-function showMyMessage(text) {
-  let message = '<div class="bubble me">' + text + '</div>'
-  globalChat.insertAdjacentHTML("beforeend", message)
+function showMyMessage(text, dataChat) {
+  let message = '<div class="bubble name me">' + text + '</div>'
+  chat.container.querySelector('.chat[data-chat="' + dataChat + '"]').insertAdjacentHTML("beforeend", message)
 }
 //Affichage d'un message extérieur
-function showNewMessage(text) {
-  let message = '<div class="bubble you">' + text + '</div>'
-  globalChat.insertAdjacentHTML("beforeend", message)
+function showNewMessage(text, usernameSender, dataChat) {
+  let message = '<div class="bubble name you"><span class="username">' + usernameSender + '</span>' + text + '</div>'
+  chat.container.querySelector('.chat[data-chat="' + dataChat + '"]').insertAdjacentHTML("beforeend", message)
+}
+
+//Informations écriture
+
+var someoneWriting = document.body.querySelector(".someoneWriting")
+
+//Affichage d'un messade d information sur l ecriture
+function showSomeoneWriting(usernameWriting, dataChat) {
+  if (chat.person == dataChat || (dataChat == "person0" && chat.person == null)) {
+    someoneWriting.innerHTML = usernameWriting + " est en train d'écrire.."
+    someoneWriting.classList.remove("none")
+  }
+}
+
+//Suppression d un message d'information sur l'écriture
+function removeSomeoneWriting(dataChat) {
+  if (chat.person == dataChat || (dataChat == "person0" && chat.person == null)) {
+    someoneWriting.classList.add("none")
+  }
+
+}
+
+//Messageries
+
+//Affichage des utilisateurs a la connexion
+function setFriends(users, socketIDs, personalUsername) {
+  for (let i = 0;i<users.length;i++) {
+    if (personalUsername != users[i])
+      addUserChat(users[i], socketIDs[i])
+  }
+}
+
+//Rechargement des liens entre amis et messagerie
+function updateFriends() {
+  friends.all = document.querySelectorAll('.left .person')
+  friends.all.forEach(function (f) {
+    f.addEventListener('mousedown', function () {
+      f.classList.contains('active') || setAciveChat(f);
+    });
+  });
+}
+
+//Ajout d'une messagerie
+function addUserChat(newUsername, newSocketID) {
+  //Amis
+  let element = '<li class="person" data-chat="' + newSocketID + '"><span class="name">' + newUsername+ '</span><br/><span class="preview">Message privé</span></li>'
+  friends.list.insertAdjacentHTML("beforeend", element)
+  //Messagerie
+  element = '<div class="chat" data-chat="' + newSocketID + '"></div>'
+  let lastChat = chat.container.querySelectorAll(".chat")
+  lastChat = lastChat[lastChat.length-1]
+  lastChat.insertAdjacentHTML("afterend", element)
+  updateFriends()
+}
+
+//Suppression d une messagerie
+function removeUserChat (oldSocketID) {
+
+  //Changement de chat si l utilisateur avec qui on est en discussion de delog
+  if (chat.person == oldSocketID)
+    setAciveChat(friends.all[0])
+
+  //amis
+  let element = friends.list.querySelector('.person[data-chat="' + oldSocketID + '"]')
+  element.parentNode.removeChild(element)
+  
+  //messagerie
+  element = chat.container.querySelector('.chat[data-chat="' + oldSocketID + '"]')
+  element.parentNode.removeChild(element)
+
+  updateFriends()
 }

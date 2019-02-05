@@ -4,6 +4,7 @@ let http      = require('http')
 let socketio  = require('socket.io')
 let morgan    = require('morgan')
 let config    = require('./config')
+let striptags = require('striptags')
 
 // Constantes
 const app     = express()
@@ -45,7 +46,7 @@ io.on('connection', function (socket) {
     socket.on('setUsername', (usernameWanted) => {
 
         // Traitement de la chaine de caractères
-        usernameWanted = usernameWanted.trim()
+        usernameWanted = striptags(usernameWanted.trim())
 
         // Vérification de l'unicité de l'username
         let usernameTaken = false
@@ -64,8 +65,8 @@ io.on('connection', function (socket) {
                 socket.join('users', () => {
                     usernames[socket.id] = usernameWanted
                     let justUsernames = getUsernames()
-                    socket.emit('acceptUsername', usernameWanted, justUsernames)
-                    socket.to("users").emit("newUser", usernameWanted, justUsernames)
+                    socket.emit('acceptUsername', usernameWanted, justUsernames, getSocketIDs())
+                    socket.to("users").emit("newUser", usernameWanted, socket.id, justUsernames)
                 })
             }
             
@@ -74,19 +75,32 @@ io.on('connection', function (socket) {
     })
 
     //Reception d un message
-    socket.on("sendMessage", (text) => {
-        text.trim()
+    socket.on("sendMessage", (text, dataChat) => {
+        text = striptags(text.trim())
         if (text != "") {
 
-            socket.to("users").emit("newMessage", text)
-            socket.emit("confirmMessage", text)
+            let data = getVariablesDataChat(dataChat, socket.id)
+
+            socket.to(data.roomToSend).emit("newMessage", text, usernames[socket.id], data.chatToShow)
+            socket.emit("confirmMessage", text, data.dataChat)
         }
     })
+
+    //Informations sur l'écriture d'un message
+    socket.on("startWriting", (dataChat) => {
+        let data = getVariablesDataChat(dataChat, socket.id)
+        socket.to(data.roomToSend).emit("userStartWriting", usernames[socket.id], data.chatToShow)
+    })
+    socket.on("stopWriting", (dataChat) => {
+        let data = getVariablesDataChat(dataChat, socket.id)
+        socket.to(data.roomToSend).emit("userStopWriting", data.chatToShow)
+    })
+
     // Déconnexion de l'utilisateur
     socket.on('disconnect', () => {
         if (usernames[socket.id]) {
             delete usernames[socket.id]
-            socket.to("users").emit("leftUser", getUsernames())
+            socket.to("users").emit("leftUser", socket.id, getUsernames())
         }
     })
 
@@ -102,4 +116,23 @@ function getUsernames () {
         users.push(usernames[socketid])
     }
     return users
+}
+//Renvoie un array contenant uniquement les socketIDs sans index
+function getSocketIDs () {
+    let socketIDs = [];
+    for (let socketid in usernames) {
+        socketIDs.push(socketid)
+    }
+    return socketIDs
+}
+
+//Envoie toutes les variables decoulant de deatchat
+function getVariablesDataChat(dataChat, socketID) {
+
+    dataChat = dataChat == null ? 'person0' : dataChat;
+    return {
+        roomToSend: dataChat == "person0" ? "users" : dataChat,
+        chatToShow: dataChat == 'person0' ? dataChat : socketID,
+        dataChat: dataChat
+    }
 }
